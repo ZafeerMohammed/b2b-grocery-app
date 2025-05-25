@@ -1,18 +1,17 @@
 package com.b2bapp.grocery.model;
 
-
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.UUID;
 
 @Entity
+@Table(name = "app_user")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "app_user")
 public class User {
 
     @Id
@@ -21,13 +20,10 @@ public class User {
 
     private String name;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String email;
 
     private String password;
 
-    private String role;    // WHOLESELER or RETAILER
-
-
-
+    private String role; // WHOLESALER or RETAILER
 }
