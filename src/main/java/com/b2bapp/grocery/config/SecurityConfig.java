@@ -34,7 +34,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/users/register", "/api/users/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated() // 👈 token required
+                        .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated() // token required
+                        .requestMatchers("/api/retailer/**").hasRole("RETAILER")
+                        .requestMatchers("/api/wholesaler/**").hasRole("WHOLESALER")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

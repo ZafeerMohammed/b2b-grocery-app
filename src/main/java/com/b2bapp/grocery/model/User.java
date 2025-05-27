@@ -25,5 +25,6 @@ public class User {
 
     private String password;
 
-    private String role; // WHOLESALER or RETAILER
+    @Enumerated(EnumType.STRING) // Stores the enum as a string in the DB
+    private Role role; // WHOLESALER or RETAILER or ADMIN
 }
