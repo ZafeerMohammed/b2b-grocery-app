@@ -33,7 +33,15 @@ public class SecurityConfig {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/users/register", "/api/users/login").permitAll()
+                        .requestMatchers(
+                                "/api/users/register",
+                                "/api/users/login",
+                                "/ws-chat/**",
+                                "/app/**",
+                                "/topic/**",
+                                "/user/**",
+                                "/queue/**"
+                        ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated() // token required
                         .requestMatchers("/api/retailer/**").hasRole("RETAILER")
                         .requestMatchers("/api/wholesaler/**").hasRole("WHOLESALER")
