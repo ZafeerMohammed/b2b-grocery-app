@@ -1,8 +1,11 @@
 package com.b2bapp.grocery.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -27,4 +30,11 @@ public class User {
 
     @Enumerated(EnumType.STRING) // Stores the enum as a string in the DB
     private Role role; // WHOLESALER or RETAILER or ADMIN
+
+
+    @OneToMany(mappedBy = "wholesaler", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore // prevent infinite loop if accidentally serialized
+    private List<Product> products;
+
+
 }

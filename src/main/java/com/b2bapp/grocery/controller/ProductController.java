@@ -10,36 +10,42 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/wholesaler")
+@RequestMapping("/api/products")
 @RequiredArgsConstructor
-public class WholesalerController {
+public class ProductController {
 
     private final ProductService productService;
 
-    // ✅ 1. Add product
-    @PostMapping("/products")
+    @PostMapping
     public ResponseEntity<Product> addProduct(@RequestBody Product product,
                                               @RequestParam String wholesalerEmail) {
         return ResponseEntity.ok(productService.addProduct(product, wholesalerEmail));
     }
 
-    // ✅ 2. View all products
-    @GetMapping("/products/all")
-    public ResponseEntity<List<Product>> getAllProducts() {
+    @GetMapping
+    public ResponseEntity<List<Product>> getAll() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
-    // ✅ 3. View products of this wholesaler
-    @GetMapping("/products")
+    @GetMapping("/category/{category}")
+    public ResponseEntity<List<Product>> getByCategory(@PathVariable String category) {
+        return ResponseEntity.ok(productService.getByCategory(category));
+    }
+
+    @GetMapping("/wholesaler")
     public ResponseEntity<List<Product>> getByWholesaler(@RequestParam String email) {
         return ResponseEntity.ok(productService.getByWholesaler(email));
     }
 
-    // ✅ 4. Delete own product
-    @DeleteMapping("/products/{productId}")
-    public ResponseEntity<String> deleteProduct(@PathVariable UUID productId,
-                                                @RequestParam String wholesalerEmail) {
-        productService.deleteProductByWholesaler(productId, wholesalerEmail);
-        return ResponseEntity.ok("Product deleted");
+    @PutMapping("/{id}")
+    public ResponseEntity<Product> update(@PathVariable UUID id,
+                                          @RequestBody Product product) {
+        return ResponseEntity.ok(productService.updateProduct(id, product));
     }
+
+//    @DeleteMapping("/{id}")
+//    public ResponseEntity<Void> delete(@PathVariable UUID id) {
+//        productService.deleteProduct(id);
+//        return ResponseEntity.noContent().build();
+//    }
 }
