@@ -7,4 +7,6 @@ import java.util.List;
 public interface OrderService {
     Order checkout(String retailerEmail);
     List<Order> getOrders(String retailerEmail);
+    List<Order> getAllOrders();
+
 }

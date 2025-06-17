@@ -1,5 +1,6 @@
 package com.b2bapp.grocery.service.impl;
 
+import com.b2bapp.grocery.exception.InsufficientStockException;
 import com.b2bapp.grocery.exception.ResourceNotFoundException;
 import com.b2bapp.grocery.model.*;
 import com.b2bapp.grocery.repository.CartItemRepository;
@@ -34,6 +35,21 @@ public class OrderServiceImpl implements OrderService {
             throw new ResourceNotFoundException("Cart is empty");
         }
 
+        // Step 1: Check and reduce product stock
+        for (CartItem item : cartItems) {
+            Product product = item.getProduct();
+            int availableQty = product.getQuantity();
+            int orderedQty = item.getQuantity();
+
+            if (orderedQty > availableQty) {
+                throw new InsufficientStockException("Insufficient stock for product: " + product.getName());
+            }
+
+            // Reduce stock
+            product.setQuantity(availableQty - orderedQty);
+        }
+
+        // Step 2: Convert CartItems to OrderItems
         List<OrderItem> orderItems = cartItems.stream()
                 .map(item -> OrderItem.builder()
                         .product(item.getProduct())
@@ -67,4 +83,10 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Retailer not found"));
         return orderRepository.findByRetailer(retailer);
     }
+
+    @Override
+    public List<Order> getAllOrders() {
+        return orderRepository.findAll();
+    }
+
 }

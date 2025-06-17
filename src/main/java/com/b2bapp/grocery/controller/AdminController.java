@@ -65,4 +65,6 @@ public class AdminController {
         adminService.deleteWholesaler(email);
         return ResponseEntity.ok().build();
     }
+
+
 }
