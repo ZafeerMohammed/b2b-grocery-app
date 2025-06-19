@@ -1,5 +1,6 @@
 package com.b2bapp.grocery.service.impl;
 
+import com.b2bapp.grocery.dto.ProductSalesStatsDTO;
 import com.b2bapp.grocery.exception.InsufficientStockException;
 import com.b2bapp.grocery.exception.ResourceNotFoundException;
 import com.b2bapp.grocery.model.*;
@@ -11,9 +12,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -88,5 +89,78 @@ public class OrderServiceImpl implements OrderService {
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }
+
+    @Override
+    public List<Order> getOrdersByWholesalerEmail(String wholesalerEmail) {
+        return orderRepository.findOrdersByWholesalerEmail(wholesalerEmail);
+    }
+
+
+    @Override
+    public List<ProductSalesStatsDTO> getWholesalerProductStats(String email, String category, LocalDate startDate, LocalDate endDate) {
+        List<Order> orders = orderRepository.findOrdersByWholesalerEmail(email);
+
+        Map<String, ProductSalesStatsDTO> stats = new HashMap<>();
+
+        for (Order order : orders) {
+            if (startDate != null && order.getOrderDate().toLocalDate().isBefore(startDate)) continue;
+            if (endDate != null && order.getOrderDate().toLocalDate().isAfter(endDate)) continue;
+
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                if (!product.getWholesaler().getEmail().equals(email)) continue;
+                if (category != null && !product.getCategory().equalsIgnoreCase(category)) continue;
+
+                stats.compute(product.getName(), (k, v) -> {
+                    double revenue = item.getQuantity() * item.getPriceAtPurchase();
+                    if (v == null) {
+                        return new ProductSalesStatsDTO(k, item.getQuantity(), revenue);
+                    } else {
+                        v.setTotalUnitsSold(v.getTotalUnitsSold() + item.getQuantity());
+                        v.setTotalRevenue(v.getTotalRevenue() + revenue);
+                        return v;
+                    }
+                });
+            }
+        }
+
+        return new ArrayList<>(stats.values());
+    }
+
+
+    @Override
+    public List<ProductSalesStatsDTO> getTopSellingProducts(String email, String category, LocalDate startDate, LocalDate endDate) {
+        List<Order> orders = orderRepository.findOrdersByWholesalerEmail(email);
+
+        Map<String, ProductSalesStatsDTO> stats = new HashMap<>();
+
+        for (Order order : orders) {
+            if (startDate != null && order.getOrderDate().toLocalDate().isBefore(startDate)) continue;
+            if (endDate != null && order.getOrderDate().toLocalDate().isAfter(endDate)) continue;
+
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                if (!product.getWholesaler().getEmail().equals(email)) continue;
+                if (category != null && !product.getCategory().equalsIgnoreCase(category)) continue;
+
+                stats.compute(product.getName(), (k, v) -> {
+                    double revenue = item.getQuantity() * item.getPriceAtPurchase();
+                    if (v == null) {
+                        return new ProductSalesStatsDTO(k, item.getQuantity(), revenue);
+                    } else {
+                        v.setTotalUnitsSold(v.getTotalUnitsSold() + item.getQuantity());
+                        v.setTotalRevenue(v.getTotalRevenue() + revenue);
+                        return v;
+                    }
+                });
+            }
+        }
+
+        // Sort by units sold descending
+        return stats.values().stream()
+                .sorted(Comparator.comparingInt(ProductSalesStatsDTO::getTotalUnitsSold).reversed())
+                .collect(Collectors.toList());
+    }
+
 
 }
