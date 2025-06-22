@@ -36,5 +36,8 @@ public class User {
     @JsonIgnore // prevent infinite loop if accidentally serialized
     private List<Product> products;
 
+    @Column(nullable = false)
+    private boolean active = true;
+
 
 }

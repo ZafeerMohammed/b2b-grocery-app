@@ -27,4 +27,18 @@ public class Product {
 
     private String category;
 
+    @Column(length = 500)
+    private String imageUrl;
+
+    private String brand;
+
+    @Column(length = 200)
+    private String tags; // Comma-separated tags
+
+    private String unitType; // e.g., kg, liter, pack
+
+    @Column(nullable = false)
+    private boolean active = true;
+
+
 }

@@ -6,10 +6,12 @@ import com.b2bapp.grocery.model.Product;
 import com.b2bapp.grocery.service.OrderService;
 import com.b2bapp.grocery.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -24,58 +26,79 @@ public class WholesalerController {
     private final OrderService orderService;
 
 
-    // ✅ 1. Add product
-    @PostMapping("/products")
-    public ResponseEntity<Product> addProduct(@RequestBody Product product,
-                                              @RequestParam String wholesalerEmail) {
-        return ResponseEntity.ok(productService.addProduct(product, wholesalerEmail));
-    }
 
-    // ✅ 2. View all products
-    @GetMapping("/products/all")
-    public ResponseEntity<List<Product>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
-    }
-
-    // ✅ 3. View products of this wholesaler
+    //  Get products owned by logged-in wholesaler
     @GetMapping("/products")
-    public ResponseEntity<List<Product>> getByWholesaler(@RequestParam String email) {
-        return ResponseEntity.ok(productService.getByWholesaler(email));
+    public ResponseEntity<Page<Product>> getOwnProducts(
+            Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getByWholesaler(principal.getName(), page, size));
     }
 
-    // ✅ 4. Delete own product
-    @DeleteMapping("/products/{productId}")
-    public ResponseEntity<String> deleteProduct(@PathVariable UUID productId,
-                                                @RequestParam String wholesalerEmail) {
-        productService.deleteProductByWholesaler(productId, wholesalerEmail);
-        return ResponseEntity.ok("Product deleted");
+
+
+
+
+    //  Get products owned by logged-in wholesaler by Catagory
+    @GetMapping("/products/category/{category}")
+    public ResponseEntity<Page<Product>> getByCategoryForWholesaler(
+            @PathVariable String category,
+            Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getByCategoryAndWholesaler(category, principal.getName(), page, size));
     }
+
+
+
 
 
     @GetMapping("/orders")
-    public ResponseEntity<List<Order>> getOrdersByWholesaler(@RequestParam String email) {
-        return ResponseEntity.ok(orderService.getOrdersByWholesalerEmail(email));
+    public ResponseEntity<Page<Order>> getOrdersByWholesaler(
+            Principal principal,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(orderService.getOrdersByWholesalerEmail(principal.getName(), page, size));
     }
+
+
+    @GetMapping("/orders/filter")
+    public ResponseEntity<Page<Order>> filterWholesalerOrders(
+            Principal principal,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(orderService.filterWholesalerOrders(principal.getName(), category, startDate, endDate, page, size));
+    }
+
+
 
     @GetMapping("/orders/stats")
     public ResponseEntity<List<ProductSalesStatsDTO>> getProductSalesStats(
-            @RequestParam String email,
+            Principal principal,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        return ResponseEntity.ok(orderService.getWholesalerProductStats(email, category, startDate, endDate));
+        return ResponseEntity.ok(orderService.getWholesalerProductStats(principal.getName(), category, startDate, endDate));
     }
 
 
     @GetMapping("/orders/top-selling")
     public ResponseEntity<List<ProductSalesStatsDTO>> getTopSellingProducts(
-            @RequestParam String email,
+            Principal principal,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        return ResponseEntity.ok(orderService.getTopSellingProducts(email, category, startDate, endDate));
+        return ResponseEntity.ok(orderService.getTopSellingProducts(principal.getName(), category, startDate, endDate));
     }
 
 }

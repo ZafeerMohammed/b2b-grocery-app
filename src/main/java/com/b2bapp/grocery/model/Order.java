@@ -33,4 +33,8 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status; // e.g., PLACED, SHIPPED, DELIVERED, CANCELLED
+
+    @Column(nullable = false)
+    private boolean active = true;
+
 }
