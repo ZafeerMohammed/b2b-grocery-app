@@ -40,6 +40,9 @@ build/
 # Log file
 *.log
 
+# Environment
+.env
+
 # BlueJ files
 *.ctxt
 
