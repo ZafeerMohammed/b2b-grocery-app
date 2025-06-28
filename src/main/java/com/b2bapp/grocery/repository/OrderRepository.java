@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +27,25 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     @Query("SELECT DISTINCT o FROM Order o JOIN o.items oi WHERE oi.product.wholesaler.email = :email")
     Page<Order> findOrdersByWholesalerEmail(@Param("email") String wholesalerEmail, Pageable pageable);
 
+    List<Order> findByActiveTrueAndOrderDateBetween(LocalDateTime start, LocalDateTime end);
+
+    List<Order> findTop10ByActiveTrueOrderByOrderDateDesc();
+
+
+    @Query("SELECT DISTINCT o FROM Order o JOIN o.items i " +
+            "WHERE i.product.wholesaler.email = :email " +
+            "AND o.orderDate BETWEEN :start AND :end " +
+            "AND o.active = true")
+    List<Order> findOrdersByWholesalerEmailAndDateRange(@Param("email") String wholesalerEmail,
+                                                        @Param("start") LocalDateTime start,
+                                                        @Param("end") LocalDateTime end);
+
+
+    @Query("SELECT DISTINCT o FROM Order o JOIN o.items i " +
+            "WHERE i.product.wholesaler.email = :email " +
+            "AND o.active = true " +
+            "ORDER BY o.orderDate DESC")
+    List<Order> findTop10ByWholesalerEmailOrderByOrderDateDesc(@Param("email") String wholesalerEmail);
 
 
 

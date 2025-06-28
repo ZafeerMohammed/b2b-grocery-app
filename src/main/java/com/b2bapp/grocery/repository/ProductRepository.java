@@ -29,14 +29,27 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Query("UPDATE Product p SET p.active = false WHERE p.wholesaler = :wholesaler")
     void softDeleteByWholesaler(@Param("wholesaler") User wholesaler);
 
-    // Search only among active products
+    // Search only among active products for wholesaler
+    @Query("SELECT p FROM Product p WHERE p.active = true AND " +
+            "LOWER(p.wholesaler.email) = LOWER(:email) AND (" +
+            "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.category) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.tags) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Product> searchByKeywordForWholesaler(@Param("email") String email,
+                                               @Param("keyword") String keyword,
+                                               Pageable pageable);
+
+
+    // Search only among active products for Retailer
     @Query("SELECT p FROM Product p WHERE p.active = true AND (" +
             "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.category) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.brand) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.tags) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    Page<Product> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+    Page<Product> searchByKeywordForRetailer(@Param("keyword") String keyword, Pageable pageable);
 
 
     @Modifying

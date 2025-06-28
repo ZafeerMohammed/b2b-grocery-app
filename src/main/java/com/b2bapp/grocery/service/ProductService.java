@@ -4,12 +4,19 @@ import com.b2bapp.grocery.model.Product;
 import com.b2bapp.grocery.model.User;
 import com.b2bapp.grocery.repository.ProductRepository;
 import com.b2bapp.grocery.repository.UserRepository;
+import com.b2bapp.grocery.util.SortUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+
+import com.b2bapp.grocery.dto.ProductRequestDTO;
+import com.b2bapp.grocery.dto.ProductResponseDTO;
+import com.b2bapp.grocery.mapper.ProductMapper;
+
 
 import java.util.List;
 import java.util.UUID;
@@ -21,33 +28,53 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-    public Product addProduct(Product product, String wholesalerEmail) {
+
+    public ProductResponseDTO createProduct(ProductRequestDTO dto, String wholesalerEmail) {
         User wholesaler = userRepository.findByEmail(wholesalerEmail)
                 .orElseThrow(() -> new RuntimeException("Wholesaler not found"));
-        product.setWholesaler(wholesaler);
-        return productRepository.save(product);
+
+        if (dto.getImageUrls() == null || dto.getImageUrls().isEmpty()) {
+            throw new IllegalArgumentException("At least one image is required.");
+        }
+
+        if (dto.getImageUrls().size() > 5) {
+            throw new IllegalArgumentException("Maximum 5 images allowed.");
+        }
+
+
+        Product product = ProductMapper.toEntity(dto, wholesaler);
+        Product saved = productRepository.save(product);
+        return ProductMapper.toDTO(saved);
     }
+
 
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
 
-    public Page<Product> getByCategoryAndWholesaler(String category, String wholesalerEmail, int page, int size) {
+    public Page<Product> getByCategoryAndWholesaler(String category, String wholesalerEmail, int page, int size, String sortBy, String sortDir) {
         User wholesaler = userRepository.findByEmail(wholesalerEmail)
                 .orElseThrow(() -> new RuntimeException("Wholesaler not found"));
 
-        Pageable pageable = PageRequest.of(page, size);
+        Sort sort = SortUtil.getValidatedSort(sortBy, sortDir);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
         return productRepository.findByCategoryAndWholesaler(category, wholesaler, pageable);
     }
 
-    public Page<Product> getByWholesaler(String wholesalerEmail, int page, int size) {
+    public Page<Product> getByWholesaler(String wholesalerEmail, int page, int size, String sortBy, String sortDir) {
         User wholesaler = userRepository.findByEmail(wholesalerEmail)
                 .orElseThrow(() -> new RuntimeException("Wholesaler not found"));
-        Pageable pageable = PageRequest.of(page, size);
+
+        Sort sort = SortUtil.getValidatedSort(sortBy, sortDir);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
         return productRepository.findByWholesaler(wholesaler, pageable);
     }
 
-    public Product updateProduct(UUID id, Product newProduct, String wholesalerEmail) {
+
+
+    public ProductResponseDTO updateProduct(UUID id, ProductRequestDTO dto, String wholesalerEmail) {
         Product existing = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
@@ -58,20 +85,11 @@ public class ProductService {
             throw new RuntimeException("You can only update your own products");
         }
 
-        existing.setName(newProduct.getName());
-        existing.setDescription(newProduct.getDescription());
-        existing.setPrice(newProduct.getPrice());
-        existing.setQuantity(newProduct.getQuantity());
-        existing.setCategory(newProduct.getCategory());
-
-        // Newly added
-        existing.setImageUrl(newProduct.getImageUrl());
-        existing.setBrand(newProduct.getBrand());
-        existing.setTags(newProduct.getTags());
-        existing.setUnitType(newProduct.getUnitType());
-
-        return productRepository.save(existing);
+        ProductMapper.updateEntity(existing, dto);
+        Product updated = productRepository.save(existing);
+        return ProductMapper.toDTO(updated);
     }
+
 
 
 
@@ -93,9 +111,17 @@ public class ProductService {
 
 
 
-    public Page<Product> searchProducts(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return productRepository.searchByKeyword(keyword, pageable);
+    public Page<ProductResponseDTO> searchProductsOfWholesaler(String wholesalerEmail, String keyword, int page, int size, String sortBy, String sortDir) {
+        Pageable pageable = PageRequest.of(page, size, SortUtil.getValidatedSort(sortBy, sortDir));
+        Page<Product> products = productRepository.searchByKeywordForWholesaler(wholesalerEmail, keyword, pageable);
+        return products.map(ProductMapper::toDTO);
+    }
+
+
+    public Page<ProductResponseDTO> searchProducts(String keyword, int page, int size, String sortBy, String sortDir) {
+        Pageable pageable = PageRequest.of(page, size, SortUtil.getValidatedSort(sortBy, sortDir));
+        Page<Product> products = productRepository.searchByKeywordForRetailer(keyword, pageable);
+        return products.map(ProductMapper::toDTO);
     }
 
 }

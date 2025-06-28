@@ -1,6 +1,8 @@
 package com.b2bapp.grocery.controller;
 
+import com.b2bapp.grocery.dto.OrderResponseDTO;
 import com.b2bapp.grocery.dto.TotalSalesStatsDTO;
+import com.b2bapp.grocery.mapper.OrderMapper;
 import com.b2bapp.grocery.model.Order;
 import com.b2bapp.grocery.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -21,24 +23,32 @@ public class OrderController {
 
     // Get all orders (no pagination)
     @GetMapping("/orders")
-    public ResponseEntity<Page<Order>> getAllOrders(@RequestParam(defaultValue = "0") int page,
-                                          @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(orderService.getAllOrders(page, size));
+    public ResponseEntity<Page<OrderResponseDTO>> getAllOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<Order> orders = orderService.getAllOrders(page, size);
+        Page<OrderResponseDTO> response = orders.map(OrderMapper::toOrderDTO);
+        return ResponseEntity.ok(response);
     }
+
 
     // Get paginated orders by retailer
     @GetMapping("/orders/by-retailer")
-    public ResponseEntity<Page<Order>> getOrdersByRetailer(
+    public ResponseEntity<Page<OrderResponseDTO>> getOrdersByRetailer(
             @RequestParam String retailerEmail,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(orderService.getOrders(retailerEmail, page, size));
+        Page<Order> orders = orderService.getOrders(retailerEmail, page, size);
+        Page<OrderResponseDTO> response = orders.map(OrderMapper::toOrderDTO);
+        return ResponseEntity.ok(response);
     }
+
 
     // Paginated filter for Admin
     @GetMapping("/orders/filter")
-    public ResponseEntity<Page<Order>> filterOrders(
+    public ResponseEntity<Page<OrderResponseDTO>> filterOrders(
             @RequestParam(required = false) String retailerEmail,
             @RequestParam(required = false) String wholesalerEmail,
             @RequestParam(required = false) String category,
@@ -47,8 +57,11 @@ public class OrderController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        return ResponseEntity.ok(
-                orderService.filterOrdersForAdmin(retailerEmail, wholesalerEmail, category, startDate, endDate, page, size)
+        Page<Order> orders = orderService.filterOrdersForAdmin(
+                retailerEmail, wholesalerEmail, category, startDate, endDate, page, size
         );
+        Page<OrderResponseDTO> response = orders.map(OrderMapper::toOrderDTO);
+        return ResponseEntity.ok(response);
     }
+
 }

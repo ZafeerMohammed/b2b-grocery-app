@@ -1,10 +1,15 @@
 package com.b2bapp.grocery.service.impl;
 
+import com.b2bapp.grocery.dto.CartItemResponseDTO;
 import com.b2bapp.grocery.exception.ResourceNotFoundException;
 import com.b2bapp.grocery.model.*;
 import com.b2bapp.grocery.repository.*;
 import com.b2bapp.grocery.service.CartService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,11 +46,23 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public List<CartItem> getCartItems(String retailerEmail) {
-        User retailer = userRepository.findByEmail(retailerEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Retailer not found"));
-        return cartItemRepository.findByRetailer(retailer);
+    public Page<CartItemResponseDTO> getCartItemDTOs(String retailerEmail, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
+        Page<CartItem> items = cartItemRepository.findByRetailerEmail(retailerEmail, pageable);
+
+        return items.map(item -> CartItemResponseDTO.builder()
+                .cartItemId(item.getId())
+                .productId(item.getProduct().getId())
+                .productName(item.getProduct().getName())
+                .imageUrls(item.getProduct().getImageUrls())
+                .brand(item.getProduct().getBrand())
+                .price(item.getProduct().getPrice())
+                .quantity(item.getQuantity())
+                .build());
     }
+
+
+
 
     @Override
     public void removeCartItem(String retailerEmail, UUID itemId) {
