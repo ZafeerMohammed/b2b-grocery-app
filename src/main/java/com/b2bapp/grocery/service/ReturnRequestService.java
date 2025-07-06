@@ -2,9 +2,13 @@ package com.b2bapp.grocery.service;
 
 import com.b2bapp.grocery.dto.ReturnRequestDTO;
 import com.b2bapp.grocery.dto.ReturnRequestResponseDTO;
+import com.b2bapp.grocery.dto.ReturnStatsDTO;
+import com.b2bapp.grocery.dto.TopReturnedProductDTO;
 import com.b2bapp.grocery.model.ReturnStatus;
 import org.springframework.data.domain.Page;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public interface ReturnRequestService {
@@ -22,4 +26,9 @@ public interface ReturnRequestService {
     void updateReturnStatus(UUID returnId, ReturnStatus newStatus);
 
     void updateReturnStatusByWholesaler(UUID returnId, ReturnStatus newStatus, String wholesalerEmail);
+
+    ReturnStatsDTO getReturnStatsForWholesaler(String wholesalerEmail, LocalDate startDate, LocalDate endDate);
+
+    List<TopReturnedProductDTO> getTopReturnedProductsForWholesaler(String email, LocalDate startDate, LocalDate endDate);
+
 }

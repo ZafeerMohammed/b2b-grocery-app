@@ -111,27 +111,6 @@ public class WholesalerController {
 
 
 
-    @GetMapping("/orders/stats")
-    public ResponseEntity<List<ProductSalesStatsDTO>> getProductSalesStats(
-            Principal principal,
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
-        return ResponseEntity.ok(orderService.getWholesalerProductStats(principal.getName(), category, startDate, endDate));
-    }
-
-
-    @GetMapping("/orders/top-selling")
-    public ResponseEntity<List<ProductSalesStatsDTO>> getTopSellingProducts(
-            Principal principal,
-            @RequestParam(required = false) String category,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
-    ) {
-        return ResponseEntity.ok(orderService.getTopSellingProducts(principal.getName(), category, startDate, endDate));
-    }
-
 
     @PatchMapping("/orders/update-status")
     public ResponseEntity<String> updateOrderStatus(

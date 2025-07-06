@@ -12,7 +12,7 @@ public class ProductMapper {
     // Convert Request DTO to Entity (for create)
     public static Product toEntity(ProductRequestDTO dto, User wholesaler) {
         return Product.builder()
-                .id(UUID.randomUUID())
+//                .id(UUID.randomUUID())
                 .name(dto.getName())
                 .description(dto.getDescription())
                 .price(dto.getPrice())

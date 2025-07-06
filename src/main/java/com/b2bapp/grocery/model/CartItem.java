@@ -3,6 +3,7 @@ package com.b2bapp.grocery.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -28,4 +29,13 @@ public class CartItem {
     private Product product;
 
     private int quantity;
+
+    @Column(updatable = false)
+    private LocalDateTime createdDate;
+
+    @PrePersist
+    public void setCreatedDate() {
+        this.createdDate = LocalDateTime.now();
+    }
+
 }

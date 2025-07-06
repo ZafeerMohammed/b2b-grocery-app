@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, UUID> {
@@ -24,4 +25,7 @@ public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, UU
     Page<ReturnRequest> findAll(Pageable pageable);
 
 //    Page<ReturnRequest> findByRetailer_Email(String retailerEmail);
+
+    List<ReturnRequest> findByOrderItem_Product_Wholesaler_Email(String email);
+
 }

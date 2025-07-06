@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -140,6 +141,60 @@ public class AdminDashboardController {
     @GetMapping("/recent-orders")
     public ResponseEntity<List<RecentOrderDTO>> getRecentOrders() {
         return ResponseEntity.ok(orderService.getRecentOrders());
+    }
+
+
+    @GetMapping("/category-sales")
+    public ResponseEntity<Map<String, Double>> getCategorySales(
+            @RequestParam String period // today, week, month
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start, end;
+
+        switch (period.toLowerCase()) {
+            case "today" -> {
+                start = now.toLocalDate().atStartOfDay();
+                end = now.toLocalDate().atTime(23, 59, 59, 999999999);
+            }
+            case "week" -> {
+                start = now.toLocalDate().with(java.time.DayOfWeek.MONDAY).atStartOfDay();
+                end = start.plusDays(6).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+            }
+            case "month" -> {
+                start = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
+                end = start.plusMonths(1).minusDays(1).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+            }
+            default -> throw new IllegalArgumentException("Invalid period.");
+        }
+
+        return ResponseEntity.ok(orderService.getCategoryWiseSales(start, end));
+    }
+
+
+    @GetMapping("/top-products")
+    public ResponseEntity<List<ProductSalesStatsDTO>> getTopProducts(
+            @RequestParam String period
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start, end;
+
+        switch (period.toLowerCase()) {
+            case "today" -> {
+                start = now.toLocalDate().atStartOfDay();
+                end = now.toLocalDate().atTime(23, 59, 59, 999999999);
+            }
+            case "week" -> {
+                start = now.toLocalDate().with(java.time.DayOfWeek.MONDAY).atStartOfDay();
+                end = start.plusDays(6).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+            }
+            case "month" -> {
+                start = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
+                end = start.plusMonths(1).minusDays(1).withHour(23).withMinute(59).withSecond(59).withNano(999999999);
+            }
+            default -> throw new IllegalArgumentException("Invalid period.");
+        }
+
+        return ResponseEntity.ok(orderService.getTopSellingProductsForAdmin(start, end));
     }
 
 }

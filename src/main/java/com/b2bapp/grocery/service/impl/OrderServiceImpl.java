@@ -7,7 +7,10 @@ import com.b2bapp.grocery.model.*;
 import com.b2bapp.grocery.repository.CartItemRepository;
 import com.b2bapp.grocery.repository.OrderRepository;
 import com.b2bapp.grocery.repository.UserRepository;
+import com.b2bapp.grocery.service.EmailService;
+import com.b2bapp.grocery.service.NotificationService;
 import com.b2bapp.grocery.service.OrderService;
+import com.b2bapp.grocery.util.PDFInvoiceGenerator;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +35,8 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final CartItemRepository cartItemRepository;
     private final OrderRepository orderRepository;
+    private final EmailService emailService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -55,7 +60,35 @@ public class OrderServiceImpl implements OrderService {
             }
 
             // Reduce stock
-            product.setQuantity(availableQty - orderedQty);
+            int newQty = availableQty - orderedQty;
+            product.setQuantity(newQty);
+
+            // Alert wholesaler if stock falls below 10
+            if (newQty < product.getMinimumStockThreshold()) {
+
+                // For email
+                String wholesalerEmail = product.getWholesaler().getEmail();
+                String subject = "Low Stock Alert: " + product.getName();
+                String body = "Dear " + product.getWholesaler().getName() + ",\n\n" +
+                        "Your product \"" + product.getName() + "\" is running low on stock.\n" +
+                        "Only " + newQty + " units are left in inventory after a recent order.\n\n" +
+                        "Please consider restocking soon.\n\n" +
+                        "Regards,\nB2B Grocery App";
+
+                emailService.sendEmail(wholesalerEmail, subject, body);
+
+                // For Notification
+                if (product.getQuantity() < product.getMinimumStockThreshold()) {
+                    User wholesaler = product.getWholesaler();
+                    notificationService.notifyUser(
+                            wholesaler,
+                            "Low Stock alert!",
+                            "Stock low for product: " + product.getName() +
+                                    ". Remaining: " + product.getQuantity()
+                    );
+                }
+
+            }
         }
 
         // Step 2: Convert CartItems to OrderItems
@@ -83,7 +116,33 @@ public class OrderServiceImpl implements OrderService {
 
         cartItemRepository.deleteByRetailer(retailer); // Clear cart
 
-        return orderRepository.save(order);
+        // After saving the order
+        orderRepository.save(order);
+
+
+        // Generate invoice PDF
+        byte[] pdfBytes = PDFInvoiceGenerator.generateInvoicePdf(order);
+
+        // Email content
+        String subject = "Order Confirmation - #" + order.getId();
+        String body = "<p>Hi " + retailer.getName() + ",</p>" +
+                "<p>Thank you for your order. Please find your invoice attached below.</p>" +
+                "<p><strong>Total Amount:</strong> ₹" + total + "</p>" +
+                "<p>We will notify you when your order is shipped.</p>" +
+                "<p>Regards,<br>B2B Grocery Team</p>";
+
+        // Send email with invoice
+        emailService.sendEmailWithAttachment(
+                retailer.getEmail(),
+                subject,
+                body,
+                pdfBytes,
+                "Invoice_" + order.getId() + ".pdf"
+        );
+
+
+        return order;
+
     }
 
     @Override
@@ -115,9 +174,9 @@ public class OrderServiceImpl implements OrderService {
         Map<String, ProductSalesStatsDTO> stats = new HashMap<>();
 
         for (Order order : orders) {
+            if (order.getStatus() != OrderStatus.DELIVERED) continue;
             if (startDate != null && order.getOrderDate().toLocalDate().isBefore(startDate)) continue;
             if (endDate != null && order.getOrderDate().toLocalDate().isAfter(endDate)) continue;
-            if (order.getStatus() != OrderStatus.DELIVERED) continue;
 
             for (OrderItem item : order.getItems()) {
                 Product product = item.getProduct();
@@ -176,6 +235,32 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
     }
 
+
+
+    @Override
+    public Map<String, Double> getWholesalerCategoryWiseSales(String email, LocalDate startDate, LocalDate endDate) {
+        List<Order> orders = orderRepository.findOrdersByItems_Product_Wholesaler_Email(email);
+
+        Map<String, Double> salesByCategory = new HashMap<>();
+
+        for (Order order : orders) {
+            if (order.getStatus() != OrderStatus.DELIVERED) continue;
+            if (startDate != null && order.getOrderDate().toLocalDate().isBefore(startDate)) continue;
+            if (endDate != null && order.getOrderDate().toLocalDate().isAfter(endDate)) continue;
+
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                if (!product.getWholesaler().getEmail().equals(email)) continue;
+
+                String category = product.getCategory();
+                double revenue = item.getQuantity() * item.getPriceAtPurchase();
+
+                salesByCategory.merge(category, revenue, Double::sum);
+            }
+        }
+
+        return salesByCategory;
+    }
 
 
     @Override
@@ -607,8 +692,113 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalArgumentException("Invalid status transition");
         }
 
+        // Save Order with new Status
         orderRepository.save(order);
+
+        // Notification
+        User retailer = order.getRetailer();
+
+        // Email
+        String subject = "Order #" + order.getId() + " - Status Update";
+        String body = "<p>Hi " + retailer.getName() + ",</p>" +
+                "<p>Your order has been updated to <strong>" + order.getStatus().name() + "</strong>.</p>" +
+                "<p>Thank you for shopping with us!</p>";
+
+        // Send email
+        emailService.sendEmail(retailer.getEmail(), subject, body);
+
+
+        // In-Application notification
+        notificationService.notifyUser(
+                retailer,
+                "Order status updated",
+                "Your order with ID #" + order.getId() + " is now " + order.getStatus().name()
+        );
+
+
     }
+
+
+    @Override
+    public Map<String, Double> getCategoryWiseSales(LocalDateTime start, LocalDateTime end) {
+        List<Order> orders = orderRepository.findByOrderDateBetweenAndStatus(start, end, OrderStatus.DELIVERED);
+        Map<String, Double> result = new HashMap<>();
+
+        for (Order order : orders) {
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                String category = product.getCategory();
+                double revenue = item.getQuantity() * item.getPriceAtPurchase();
+                result.merge(category, revenue, Double::sum);
+            }
+        }
+
+        return result;
+    }
+
+
+    @Override
+    public List<ProductSalesStatsDTO> getTopSellingProductsForAdmin(LocalDateTime start, LocalDateTime end) {
+        List<Order> orders = orderRepository.findByOrderDateBetweenAndStatus(start, end, OrderStatus.DELIVERED);
+        Map<String, ProductSalesStatsDTO> stats = new HashMap<>();
+
+        for (Order order : orders) {
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                String name = product.getName();
+                double revenue = item.getQuantity() * item.getPriceAtPurchase();
+
+                stats.compute(name, (k, v) -> {
+                    if (v == null) return new ProductSalesStatsDTO(name, item.getQuantity(), revenue);
+                    v.setTotalUnitsSold(v.getTotalUnitsSold() + item.getQuantity());
+                    v.setTotalRevenue(v.getTotalRevenue() + revenue);
+                    return v;
+                });
+            }
+        }
+
+        return stats.values().stream()
+                .sorted(Comparator.comparingInt(ProductSalesStatsDTO::getTotalUnitsSold).reversed())
+                .limit(10)
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    public List<ProductSalesStatsDTO> getTopProductsForWholesaler(
+            String wholesalerEmail,
+            LocalDate start,
+            LocalDate end
+    ) {
+        List<Order> orders = orderRepository.findOrdersByItems_Product_Wholesaler_Email(wholesalerEmail);
+        Map<String, ProductSalesStatsDTO> stats = new HashMap<>();
+
+        for (Order order : orders) {
+            if (order.getStatus() != OrderStatus.DELIVERED) continue;
+            if (start != null && order.getOrderDate().toLocalDate().isBefore(start)) continue;
+            if (end != null && order.getOrderDate().toLocalDate().isAfter(end)) continue;
+
+            for (OrderItem item : order.getItems()) {
+                Product product = item.getProduct();
+                if (!product.getWholesaler().getEmail().equalsIgnoreCase(wholesalerEmail)) continue;
+
+                double revenue = item.getQuantity() * item.getPriceAtPurchase();
+
+                stats.compute(product.getName(), (k, v) -> {
+                    if (v == null) return new ProductSalesStatsDTO(k, item.getQuantity(), revenue);
+                    v.setTotalUnitsSold(v.getTotalUnitsSold() + item.getQuantity());
+                    v.setTotalRevenue(v.getTotalRevenue() + revenue);
+                    return v;
+                });
+            }
+        }
+
+        return stats.values().stream()
+                .sorted(Comparator.comparingInt(ProductSalesStatsDTO::getTotalUnitsSold).reversed())
+                .limit(10)
+                .collect(Collectors.toList());
+    }
+
 
 
 }

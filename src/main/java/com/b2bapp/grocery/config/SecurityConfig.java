@@ -41,11 +41,15 @@ public class SecurityConfig {
                                 "/topic/**",
                                 "/user/**",
                                 "/queue/**"
-                        ).permitAll()
+//                                "/api/test-email"
+                                ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/users/email/**").authenticated() // token required
                         .requestMatchers("/api/retailer/**").hasRole("RETAILER")
                         .requestMatchers("/api/wholesaler/**").hasRole("WHOLESALER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                        .requestMatchers("/api/notifications/**").hasAnyRole("RETAILER", "WHOLESALER", "ADMIN")
+
 
 //                        .requestMatchers("/api/products/**").hasRole("WHOLESALER")
 

@@ -1,6 +1,7 @@
 package com.b2bapp.grocery.repository;
 
 import com.b2bapp.grocery.model.Order;
+import com.b2bapp.grocery.model.OrderStatus;
 import com.b2bapp.grocery.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +29,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID>, JpaSpecific
     Page<Order> findOrdersByWholesalerEmail(@Param("email") String wholesalerEmail, Pageable pageable);
 
     List<Order> findByActiveTrueAndOrderDateBetween(LocalDateTime start, LocalDateTime end);
+
+    List<Order> findByOrderDateBetweenAndStatus(LocalDateTime start, LocalDateTime end, OrderStatus status);
 
     List<Order> findTop10ByActiveTrueOrderByOrderDateDesc();
 

@@ -51,6 +51,11 @@ public class Product {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(nullable = false)
+    private int minimumStockThreshold = 10;
+
+
+
     @Column(updatable = false)
     private LocalDateTime createdDate;
 

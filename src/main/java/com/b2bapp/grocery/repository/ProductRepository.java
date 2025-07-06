@@ -19,6 +19,9 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Query("SELECT p FROM Product p WHERE p.wholesaler = :wholesaler AND p.active = true")
     Page<Product> findByWholesaler(@Param("wholesaler") User wholesaler, Pageable pageable);
 
+    List<Product> findByWholesaler_Email(String email);
+
+
     @Query("SELECT p FROM Product p WHERE p.category = :category AND p.wholesaler = :wholesaler AND p.active = true")
     Page<Product> findByCategoryAndWholesaler(@Param("category") String category, @Param("wholesaler") User wholesaler, Pageable pageable);
 

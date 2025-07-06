@@ -1,5 +1,6 @@
 package com.b2bapp.grocery.service;
 
+import com.b2bapp.grocery.dto.LowStockProductDTO;
 import com.b2bapp.grocery.model.Product;
 import com.b2bapp.grocery.model.User;
 import com.b2bapp.grocery.repository.ProductRepository;
@@ -20,6 +21,7 @@ import com.b2bapp.grocery.mapper.ProductMapper;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -123,5 +125,23 @@ public class ProductService {
         Page<Product> products = productRepository.searchByKeywordForRetailer(keyword, pageable);
         return products.map(ProductMapper::toDTO);
     }
+
+
+
+    public List<LowStockProductDTO> getLowStockProductsForWholesaler(String wholesalerEmail) {
+        List<Product> products = productRepository.findByWholesaler_Email(wholesalerEmail);
+
+        return products.stream()
+                .filter(p -> p.getQuantity() < p.getMinimumStockThreshold())
+                .map(p -> new LowStockProductDTO(
+                        p.getName(),
+                        p.getQuantity(),
+                        p.getMinimumStockThreshold(),
+                        p.getCategory()
+                ))
+                .collect(Collectors.toList());
+    }
+
+
 
 }
