@@ -29,7 +29,7 @@ public interface OrderService {
     List<RecentOrderDTO> getRecentOrdersForWholesaler(String wholesalerEmail);
     void updateOrderStatus(UUID orderId, OrderStatus newStatus, String wholesalerEmail);
     Map<String, Double> getWholesalerCategoryWiseSales(String email, LocalDate startDate, LocalDate endDate);
-    List<ProductSalesStatsDTO> getTopProductsForWholesaler(String wholesalerEmail,String, LocalDate start, LocalDate end);
+    List<ProductSalesStatsDTO> getTopProductsForWholesaler(String wholesalerEmail, LocalDate start, LocalDate end);
 
 
     // Admin
